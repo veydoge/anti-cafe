@@ -1,12 +1,23 @@
+import com.android.build.gradle.internal.cxx.configure.gradleLocalProperties
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.jetbrainsKotlinAndroid)
     kotlin("plugin.serialization") version "1.9.0"
 }
 
+
+
 android {
     namespace = "com.example.anti_cafe"
     compileSdk = 34
+
+    val key : String = gradleLocalProperties(rootDir, providers)
+        .getProperty("supabase.key")
+    val url : String = com.android.build.gradle.internal.cxx.configure.gradleLocalProperties(rootDir, providers)
+        .getProperty("supabase.url")
+
 
     defaultConfig {
         applicationId = "com.example.anti_cafe"
@@ -19,6 +30,11 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
+        buildConfigField("String", "supabaseKey", "\"$key\"")
+        buildConfigField("String", "supabaseUrl", "\"$url\"")
+
+
+
     }
 
     buildTypes {
@@ -39,6 +55,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.1"
@@ -63,6 +80,7 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.androidx.navigation.runtime.ktx)
     implementation(libs.androidx.navigation.compose)
+    implementation(libs.androidx.material.icons.extended)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

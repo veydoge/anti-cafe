@@ -14,6 +14,7 @@ bom = "2.3.0-coil3d1"
 postgresKt = "2.2.3"
 postgrestKt = "2.3.0-coil3d1"
 ktorClientAndroid = "3.0.0-beta-1"
+materialIconsExtended = "1.7.0-alpha08"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -36,6 +37,7 @@ bom = { group = "io.github.jan-tennert.supabase", name = "bom", version.ref = "b
 postgres-kt = { module = "io.github.jan-tennert.supabase:postgres-kt", version.ref = "postgresKt" }
 postgrest-kt = { group = "io.github.jan-tennert.supabase", name = "postgrest-kt", version.ref = "postgrestKt" }
 ktor-client-android = { group = "io.ktor", name = "ktor-client-android", version.ref = "ktorClientAndroid" }
+androidx-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended", version.ref = "materialIconsExtended" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
