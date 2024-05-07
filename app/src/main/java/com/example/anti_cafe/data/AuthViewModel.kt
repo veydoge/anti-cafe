@@ -4,23 +4,19 @@ import android.content.Context
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.anti_cafe.data.network.SupabaseClient
 import io.github.jan.supabase.exceptions.BadRequestRestException
+import io.github.jan.supabase.exceptions.UnknownRestException
 import io.github.jan.supabase.gotrue.auth
 import io.github.jan.supabase.gotrue.providers.builtin.Email
 import io.github.jan.supabase.gotrue.user.UserInfo
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class AuthViewModel() : ViewModel(){
-    var _error by mutableStateOf("1234666")
+    var error by mutableStateOf("")
     var hasSession: MutableState<Boolean?> = mutableStateOf(null)
     var userInfo: UserInfo? = null
     fun signUp(context: Context, _email: String, _password: String){
@@ -33,9 +29,8 @@ class AuthViewModel() : ViewModel(){
                 saveToken(context)
             }
             catch(e: BadRequestRestException){
-                _error = e.error.toString()
+                error = e.error.toString()
             }
-
         }
     }
 
@@ -49,22 +44,29 @@ class AuthViewModel() : ViewModel(){
                 saveToken(context)
             }
             catch(e: BadRequestRestException){
-                _error = e.error.toString()
+                error = e.error.toString()
             }
         }
     }
 
     fun isUserLoggedIn(context: Context){
         viewModelScope.launch {
-            val token = getToken(context)
-            if (token.isNullOrEmpty()){
-                hasSession.value = false
-            } else{
-                userInfo = SupabaseClient.client.auth.retrieveUser(token)
-                SupabaseClient.client.auth.refreshCurrentSession()
-                saveToken(context)
-                hasSession.value = true
+            try{
+                val token = getToken(context)
+                if (token.isNullOrEmpty()){
+                    hasSession.value = false
+                } else{
+                    userInfo = SupabaseClient.client.auth.retrieveUser(token)
+                    SupabaseClient.client.auth.refreshCurrentSession()
+                    saveToken(context)
+                    hasSession.value = true
+                }
             }
+            catch (e: UnknownRestException) {
+                error = e.error.toString()
+
+            }
+
 
         }
     }
