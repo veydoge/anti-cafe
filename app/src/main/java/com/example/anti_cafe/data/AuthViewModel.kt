@@ -14,22 +14,30 @@ import io.github.jan.supabase.gotrue.auth
 import io.github.jan.supabase.gotrue.providers.builtin.Email
 import io.github.jan.supabase.gotrue.user.UserInfo
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 
 class AuthViewModel() : ViewModel(){
     var error by mutableStateOf("")
     var hasSession: MutableState<Boolean?> = mutableStateOf(null)
-    var userInfo: UserInfo? = null
-    fun signUp(context: Context, _email: String, _password: String){
+    var userAuthInfo: UserInfo? = null
+    fun signUp(context: Context, _email: String, _password: String, _name: String, _phone: String){
         viewModelScope.launch {
             try {
                 SupabaseClient.client.auth.signUpWith(Email) {
                     email = _email
                     password = _password
+                    data = buildJsonObject {
+                        put("name", _name)
+                        put("phone", _phone)
+                    }
                 }
                 saveToken(context)
+                isUserLoggedIn(context)
             }
             catch(e: BadRequestRestException){
                 error = e.error.toString()
+                hasSession.value = false
             }
         }
     }
@@ -42,9 +50,11 @@ class AuthViewModel() : ViewModel(){
                     password = _password
                 }
                 saveToken(context)
+                isUserLoggedIn(context)
             }
             catch(e: BadRequestRestException){
                 error = e.error.toString()
+                hasSession.value = false
             }
         }
     }
@@ -52,11 +62,12 @@ class AuthViewModel() : ViewModel(){
     fun isUserLoggedIn(context: Context){
         viewModelScope.launch {
             try{
+
                 val token = getToken(context)
                 if (token.isNullOrEmpty()){
                     hasSession.value = false
                 } else{
-                    userInfo = SupabaseClient.client.auth.retrieveUser(token)
+                    userAuthInfo = SupabaseClient.client.auth.retrieveUser(token)
                     SupabaseClient.client.auth.refreshCurrentSession()
                     saveToken(context)
                     hasSession.value = true
@@ -64,10 +75,25 @@ class AuthViewModel() : ViewModel(){
             }
             catch (e: UnknownRestException) {
                 error = e.error.toString()
-
+                hasSession.value = false
             }
+        }
+    }
 
+    fun logout(context: Context){
+        viewModelScope.launch{
 
+            SupabaseClient.client.auth.clearSession()
+            clearToken(context)
+            userAuthInfo = null
+            hasSession.value = false
+        }
+    }
+
+    fun clearToken(context: Context){
+        viewModelScope.launch {
+            val sharedPrefs = SharedPrefsHelper(context)
+            sharedPrefs.saveStringData("accessToken", "")
         }
     }
 

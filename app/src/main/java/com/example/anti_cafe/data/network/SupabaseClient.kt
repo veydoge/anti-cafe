@@ -2,6 +2,7 @@ package com.example.anti_cafe.data.network
 
 
 import io.github.jan.supabase.createSupabaseClient
+import io.github.jan.supabase.functions.Functions
 import io.github.jan.supabase.gotrue.Auth
 import io.github.jan.supabase.postgrest.Postgrest
 
@@ -12,5 +13,6 @@ object SupabaseClient {
     ){
         install(Postgrest)
         install(Auth)
+        install(Functions)
     }
 }

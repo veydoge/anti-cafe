@@ -15,6 +15,9 @@ postgresKt = "2.2.3"
 postgrestKt = "2.3.0-coil3d1"
 ktorClientAndroid = "3.0.0-beta-1"
 materialIconsExtended = "1.7.0-alpha08"
+coil = "2.6.0"
+coilCompose = "2.6.0"
+functionsKt = "2.4.0-dev-1"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -38,6 +41,9 @@ postgres-kt = { module = "io.github.jan-tennert.supabase:postgres-kt", version.r
 postgrest-kt = { group = "io.github.jan-tennert.supabase", name = "postgrest-kt", version.ref = "postgrestKt" }
 ktor-client-android = { group = "io.ktor", name = "ktor-client-android", version.ref = "ktorClientAndroid" }
 androidx-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended", version.ref = "materialIconsExtended" }
+coil = { group = "io.coil-kt", name = "coil", version.ref = "coil" }
+coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coilCompose" }
+functions-kt = { group = "io.github.jan-tennert.supabase", name = "functions-kt", version.ref = "functionsKt" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
