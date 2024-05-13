@@ -45,10 +45,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
-import com.example.anti_cafe.Event
 import com.example.anti_cafe.data.AuthViewModel
+import com.example.anti_cafe.data.Event
+import com.example.anti_cafe.data.EventObservable
+import com.example.anti_cafe.data.EventsViewModel
 import com.example.anti_cafe.data.network.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.rpc
@@ -58,16 +61,25 @@ import kotlinx.serialization.json.put
 
 @Composable
 fun Events(navHostController: NavHostController, authViewModel: AuthViewModel){
+    var eventsViewModel: EventsViewModel = viewModel()
 
-    var events by remember {
-        mutableStateOf(mutableStateListOf<Event>())
-    }
+    var events = eventsViewModel.eventList
     LaunchedEffect(null) {
-        events = SupabaseClient.client.postgrest.rpc("user_events", parameters = buildJsonObject { put("useruid", authViewModel.userAuthInfo?.id) }).decodeList<Event>().toMutableStateList()
+        eventsViewModel.loadEvents(authViewModel.userAuthInfo?.id)
     }
     LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         items(events){
-            EventCard(event = it, modifier = Modifier.padding(5.dp), userUid = authViewModel.userAuthInfo?.id)
+            EventCard(event = it, modifier = Modifier.padding(5.dp), userUid = authViewModel.userAuthInfo?.id,
+                onClick =
+                {if (!it.flag.value){
+                    eventsViewModel.joinEvent(authViewModel.userAuthInfo!!.id, it.id)
+                    it.flag.value = true
+                }
+                    else{
+                        eventsViewModel.leaveEvent(authViewModel.userAuthInfo!!.id, it.id)
+                    it.flag.value = false
+                }
+                })
         }
     }
 
@@ -81,14 +93,15 @@ fun Events(navHostController: NavHostController, authViewModel: AuthViewModel){
 @Composable
 fun PreviewEventCard(){
     var events by remember {
-        mutableStateOf(mutableStateListOf<Event>())
+        mutableStateOf(mutableStateListOf<EventObservable>())
     }
     LaunchedEffect(null) {
-        events = SupabaseClient.client.postgrest.rpc("user_events", parameters = buildJsonObject { put("useruid", "55734d1d-035a-4740-8ca9-bcedb2f1cffa") }).decodeList<Event>().toMutableStateList()
+        val eventsLoaded = SupabaseClient.client.postgrest.rpc("user_events", parameters = buildJsonObject { put("useruid", "55734d1d-035a-4740-8ca9-bcedb2f1cffa") }).decodeList<Event>().toMutableStateList()
+        events = eventsLoaded.map{EventObservable(it)}.toMutableStateList()
     }
     LazyColumn(verticalArrangement = Arrangement.spacedBy(20.dp)) {
         items(events){
-            EventCard(event = it)
+            EventCard(event = it, onClick = {})
         }
     }
 
@@ -97,10 +110,11 @@ fun PreviewEventCard(){
 
 
 @Composable
-fun EventCard(event: Event, userUid: String? = null, modifier: Modifier = Modifier){
+fun EventCard(event: EventObservable, userUid: String? = null, onClick: () -> Unit, modifier: Modifier = Modifier){
     var expanded by rememberSaveable {
         mutableStateOf(false)
     }
+    val isEntered by rememberSaveable{ mutableStateOf(event.flag)}
     Card (shape = RoundedCornerShape(10.dp), modifier = modifier)
     {
         Column(modifier = Modifier.padding(10.dp)){
@@ -130,8 +144,8 @@ fun EventCard(event: Event, userUid: String? = null, modifier: Modifier = Modifi
                 .align(Alignment.CenterHorizontally), contentScale = ContentScale.Fit)
             Row(modifier = Modifier.padding(top = 10.dp)){
                 if (userUid != null){
-                    Button(onClick = {  }, modifier = Modifier.padding(start = 15.dp)) {
-                        if (!event.flag) Text(text = "Участвую")
+                    Button(onClick = onClick, modifier = Modifier.padding(start = 15.dp)) {
+                        if (!event.flag.value) Text(text = "Участвую")
                         else Text(text = "Уже участвуете")
                     }
                 }
