@@ -6,7 +6,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.anti_cafe.data.network.SupabaseClient
 import io.github.jan.supabase.exceptions.BadRequestRestException
 import io.github.jan.supabase.exceptions.UnknownRestException
@@ -21,6 +23,7 @@ class AuthViewModel() : ViewModel(){
     var error by mutableStateOf("")
     var hasSession: MutableState<Boolean?> = mutableStateOf(null)
     var userAuthInfo: UserInfo? = null
+
     fun signUp(context: Context, _email: String, _password: String, _name: String, _phone: String){
         viewModelScope.launch {
             try {
@@ -108,4 +111,9 @@ class AuthViewModel() : ViewModel(){
         val sharedPref = SharedPrefsHelper(context)
         return sharedPref.getStringData("accessToken")
     }
+}
+
+class AuthViewModelFactory(context: Context): ViewModelProvider.NewInstanceFactory(){
+    
+
 }

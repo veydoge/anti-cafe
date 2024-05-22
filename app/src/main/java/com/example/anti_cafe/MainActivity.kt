@@ -42,11 +42,16 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.anti_cafe.data.AuthViewModel
+import com.example.anti_cafe.data.EventsViewModel
+import com.example.anti_cafe.data.RoomsViewModel
 import com.example.anti_cafe.data.network.SupabaseClient
 import com.example.anti_cafe.ui.Profile
 import com.example.anti_cafe.ui.SignUpScreen
 import com.example.anti_cafe.ui.theme.AnticafeTheme
 import com.example.anti_cafe.ui.Events
+import com.example.anti_cafe.ui.Main
+import com.example.anti_cafe.ui.RoomPage
+import com.example.anti_cafe.ui.RoomPreload
 import com.example.anti_cafe.ui.SignInScreen
 import io.github.jan.supabase.annotations.SupabaseInternal
 import io.github.jan.supabase.functions.functions
@@ -117,15 +122,17 @@ fun AntiCafeApp(modifier: Modifier = Modifier.fillMaxSize()){
                     navHostController.getBackStackEntry("mainGraph")
                 }
                 val authViewModel: AuthViewModel = viewModel(parentEntry)
+                val roomsViewModel: RoomsViewModel = viewModel(parentEntry)
 
-                Main(authViewModel)
+                Main(authViewModel, roomsViewModel, {navHostController.navigate("room_page/$it")})
             }
             composable("events"){
                 val parentEntry = remember(navBackStackEntry){
                     navHostController.getBackStackEntry("mainGraph")
                 }
                 val authViewModel: AuthViewModel = viewModel(parentEntry)
-                Events(navHostController, authViewModel)
+                val eventsViewModel: EventsViewModel = viewModel(parentEntry)
+                Events(eventsViewModel, navHostController, authViewModel)
             }
             composable("profile"){
                 val parentEntry = remember(navBackStackEntry){
@@ -148,6 +155,16 @@ fun AntiCafeApp(modifier: Modifier = Modifier.fillMaxSize()){
                 val authViewModel: AuthViewModel = viewModel(parentEntry)
                 SignInScreen({ navHostController.navigate("profile") }, authViewModel)
             }
+
+            composable("room_page/{roomId}"){
+                val parentEntry = remember(navBackStackEntry){
+                    navHostController.getBackStackEntry("mainGraph")
+                }
+                val authViewModel: AuthViewModel = viewModel(parentEntry)
+                val roomsViewModel: RoomsViewModel = viewModel(parentEntry)
+                it.arguments!!.getString("roomId")
+                    ?.let { it1 -> RoomPreload(it1, authViewModel, roomsViewModel) }
+            }
         }
     }
 
@@ -168,43 +185,6 @@ fun ProfilePreview(){
 
 
 
-@Serializable
-data class Room(val id: Int, val name: String, val desc: String)
-
-
-@Composable
-fun Main(authViewModel: AuthViewModel){
-
-
-
-    val context = LocalContext.current
-    LaunchedEffect(null) {
-        if (authViewModel.hasSession.value == null){
-            authViewModel.isUserLoggedIn(context)
-        }
-    }
-
-
-
-        Column(
-            Modifier
-                .fillMaxSize()
-                ) {
-            Column(
-                Modifier
-                    .weight(1f)
-                    .fillMaxSize(),
-                verticalArrangement = Arrangement.SpaceAround,
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(text = "Main")
-
-            }
-
-        }
-
-
-}
 
 
 

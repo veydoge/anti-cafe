@@ -18,6 +18,8 @@ materialIconsExtended = "1.7.0-alpha08"
 coil = "2.6.0"
 coilCompose = "2.6.0"
 functionsKt = "2.4.0-dev-1"
+compose = "2.5.1"
+desugar_jdk_libs = "2.0.4"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -44,6 +46,8 @@ androidx-material-icons-extended = { group = "androidx.compose.material", name =
 coil = { group = "io.coil-kt", name = "coil", version.ref = "coil" }
 coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coilCompose" }
 functions-kt = { group = "io.github.jan-tennert.supabase", name = "functions-kt", version.ref = "functionsKt" }
+compose = { group = "com.kizitonwose.calendar", name = "compose", version.ref = "compose" }
+desugar_jdk_libs = { group = "com.android.tools", name = "desugar_jdk_libs", version.ref = "desugar_jdk_libs" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }

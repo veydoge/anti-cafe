@@ -60,12 +60,12 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
 @Composable
-fun Events(navHostController: NavHostController, authViewModel: AuthViewModel){
-    var eventsViewModel: EventsViewModel = viewModel()
-
+fun Events(eventsViewModel: EventsViewModel, navHostController: NavHostController, authViewModel: AuthViewModel){
     var events = eventsViewModel.eventList
-    LaunchedEffect(null) {
-        eventsViewModel.loadEvents(authViewModel.userAuthInfo?.id)
+    LaunchedEffect(authViewModel.userAuthInfo?.id) {
+        if (eventsViewModel.eventList.isEmpty()){
+            eventsViewModel.loadEvents(authViewModel.userAuthInfo?.id)
+        }
     }
     LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         items(events){
