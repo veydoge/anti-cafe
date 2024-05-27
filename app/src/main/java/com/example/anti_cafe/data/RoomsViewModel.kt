@@ -21,17 +21,20 @@ import java.time.LocalDate
 
 
 @Serializable
-data class Room(val id: Int, val name: String, val description: String, val minGuest: Int, val maxGuest: Int, val rooms_images: List<RoomImageLink>)
+data class Room(val id: Int, val name: String, val description: String, val minGuest: Int, val maxGuest: Int, val rooms_images: List<RoomImageLink>, val room_type: RoomType    )
+@Serializable
+data class RoomType(val name: String)
 
 @Serializable
 data class RoomImageLink(val image_link: String)
 
 class RoomsViewModel : ViewModel() {
-    var rooms = mutableStateOf(mutableListOf<Room>())
+    var rooms = mutableStateOf(listOf<Room>())
     var schedule : MutableState<List<ObservableSchedule>> = mutableStateOf(listOf<ObservableSchedule>())
+    var daySchedule: MutableState<List<ObservableDaySchedule>> = mutableStateOf(listOf<ObservableDaySchedule>())
     init {
         viewModelScope.launch {
-            rooms.value = SupabaseClient.client.postgrest.from("rooms").select(Columns.raw("id, name, description, minGuest, maxGuest, rooms_images(image_link)")).decodeList<Room>().toMutableList()
+            rooms.value = SupabaseClient.client.postgrest.from("rooms").select(Columns.raw("id, name, description, minGuest, maxGuest, rooms_images(image_link), room_type(name)")).decodeList<Room>().toMutableList()
 
         }
     }
@@ -46,12 +49,20 @@ class RoomsViewModel : ViewModel() {
 
     public fun loadSchedule(room_id: Int, start_date: LocalDate, days: Int, available_hours_per_day: Int){
         viewModelScope.launch {
+            daySchedule = mutableStateOf(listOf<ObservableDaySchedule>())
             schedule.value = SupabaseClient.client.postgrest.rpc("schedule", parameters = buildJsonObject { put("room_id", room_id)
                 put("start_date", start_date.toString())
                 put("days", days,)
                 put("available_hours_per_day", available_hours_per_day)}).decodeList<Schedule>().map { ObservableSchedule(it) }
         }
+    }
 
+    public fun loadDaySchedule(day: LocalDate, room_id: Int){
+        viewModelScope.launch {
+            daySchedule.value = SupabaseClient.client.postgrest.rpc("day_schedule", parameters = buildJsonObject { put("day", day.toString())
+                put("room_id_", room_id)}).decodeList<DaySchedule>().map { ObservableDaySchedule(it) }
+
+        }
     }
 }
 
@@ -60,9 +71,14 @@ class RoomsViewModel : ViewModel() {
 @Serializable
 data class Schedule(val room_id: Int, val day: kotlinx.datetime.LocalDate, val status: String)
 
-@Serializable data class ObservableSchedule(val room_id: Int, val day: kotlinx.datetime.LocalDate, val status: MutableState<String>){
+data class ObservableSchedule(val room_id: Int, val day: kotlinx.datetime.LocalDate, val status: MutableState<String>){
     constructor(schedule: Schedule) : this(schedule.room_id, schedule.day, mutableStateOf(schedule.status))
 }
 
 @Serializable
 data class DaySchedule(val room_id: Int, val date: LocalDateTime, var status: String, val user_id: String?)
+
+@Serializable
+data class ObservableDaySchedule(val room_id: Int, val date: LocalDateTime, var status: MutableState<String>, val user_id: MutableState<String?>){
+    constructor(daySchedule: DaySchedule) : this(daySchedule.room_id, daySchedule.date, mutableStateOf(daySchedule.status), mutableStateOf(daySchedule.user_id))
+}

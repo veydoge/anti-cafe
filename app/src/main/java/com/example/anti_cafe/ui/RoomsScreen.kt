@@ -1,5 +1,6 @@
 package com.example.anti_cafe.ui
 
+import android.util.Log
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -32,6 +33,8 @@ import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderState
 import androidx.compose.material3.Tab
@@ -69,9 +72,11 @@ import androidx.navigation.compose.rememberNavController
 import coil.compose.AsyncImage
 import com.example.anti_cafe.data.AuthViewModel
 import com.example.anti_cafe.data.DaySchedule
+import com.example.anti_cafe.data.ObservableDaySchedule
 import com.example.anti_cafe.data.ObservableSchedule
 import com.example.anti_cafe.data.Room
 import com.example.anti_cafe.data.RoomImageLink
+import com.example.anti_cafe.data.RoomType
 import com.example.anti_cafe.data.RoomsViewModel
 import com.example.anti_cafe.data.Schedule
 import com.example.anti_cafe.data.network.SupabaseClient
@@ -81,6 +86,7 @@ import com.kizitonwose.calendar.compose.weekcalendar.WeekCalendarState
 import com.kizitonwose.calendar.compose.weekcalendar.rememberWeekCalendarState
 import com.kizitonwose.calendar.core.Week
 import com.kizitonwose.calendar.core.WeekDay
+import com.kizitonwose.calendar.core.WeekDayPosition
 import com.kizitonwose.calendar.core.firstDayOfWeekFromLocale
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
@@ -97,10 +103,12 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
 
+const val DAYS_SCHEDULE_READY = 14 // на сколько дней вперед можно бронировать
+
 @Preview(showBackground = true)
 @Composable
 fun RoomPreviewMiniCard(){
-    RoomMiniCard(room = Room(1, "Имя", "123", 1, 5, listOf(RoomImageLink("https://12komnat.com/wp-content/uploads/2022/09/img_1221-scaled.jpg"), RoomImageLink("https://12komnat.com/wp-content/uploads/2022/09/img_0320-scaled.jpg"), RoomImageLink("https://12komnat.com/wp-content/uploads/2022/09/IMG_8249-scaled.jpg"))))
+    RoomMiniCard(room = Room(1, "Имя", "123", 1, 5, listOf(RoomImageLink("https://12komnat.com/wp-content/uploads/2022/09/img_1221-scaled.jpg"), RoomImageLink("https://12komnat.com/wp-content/uploads/2022/09/img_0320-scaled.jpg"), RoomImageLink("https://12komnat.com/wp-content/uploads/2022/09/IMG_8249-scaled.jpg")), RoomType("Комната")))
 }
 
 
@@ -111,37 +119,20 @@ fun Main(authViewModel: AuthViewModel, roomsViewModel: RoomsViewModel, onRoomCli
 
     val context = LocalContext.current
     LaunchedEffect(null) {
-        authViewModel.isUserLoggedIn(context)
+        if (authViewModel.hasSession.value == null){
+            authViewModel.isUserLoggedIn(context)
+        }
+
+
     }
 
     Column{
-        val navHostController: NavHostController = rememberNavController()
-        var selectedTabIndex by rememberSaveable {
-            mutableStateOf(0)
-        }
+
         Text(text = "Главная", fontSize = MaterialTheme.typography.headlineLarge.fontSize, textAlign = TextAlign.Center, modifier = Modifier
             .fillMaxWidth()
             .padding(10.dp))
 
-        TabRow(selectedTabIndex = selectedTabIndex) {
-            Tab(true, {selectedTabIndex = 0
-            navHostController.navigate("rooms")}){
-                Text(text = "Комнаты", fontSize = 20.sp)
-            }
-            Tab(false, {selectedTabIndex = 1
-                navHostController.navigate("tables")}){
-                Text(text = "Стол", fontSize = 20.sp)
-            }
-        }
-
-        NavHost(navController = navHostController, startDestination = "rooms"){
-            composable("rooms"){
-                RoomCard(roomsViewModel, onRoomClicked)
-            }
-            composable("tables"){
-
-            }
-        }
+        RoomCard(roomsViewModel, onRoomClicked)
     }
 
 }
@@ -153,11 +144,17 @@ fun RoomMiniCard(room: Room, modifier: Modifier = Modifier){
         .height(210.dp)
         .width(180.dp)){
         Box(){
-            AsyncImage(model = room.rooms_images[0].image_link , contentDescription = null, modifier = Modifier
-                .background(
-                    Color.Gray
+                AsyncImage(
+                    model = if (room.rooms_images.size != 0) room.rooms_images.get(0).image_link else null,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .background(
+                            Color.Gray
+                        )
+                        .height(140.dp),
+                    contentScale = ContentScale.Crop
                 )
-                .height(140.dp), contentScale = ContentScale.Crop)
+
             Text(text = "${room.minGuest}-${room.maxGuest}", fontSize = 16.sp, fontWeight = FontWeight.Bold, modifier = Modifier
                 .align(Alignment.TopEnd)
                 .padding(end = 10.dp, top = 10.dp), color = MaterialTheme.colorScheme.tertiaryContainer)
@@ -176,17 +173,27 @@ fun RoomMiniCard(room: Room, modifier: Modifier = Modifier){
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun RoomCard(roomsViewModel: RoomsViewModel, onRoomClicked: (String) -> Unit = {}){
-
-    var rooms = roomsViewModel.rooms
-
-    LazyVerticalGrid(columns = GridCells.Fixed(2)) {
-        items(rooms.value){
-            RoomMiniCard(room = it, modifier = Modifier
-                .padding(8.dp)
-                .clickable { onRoomClicked(it.id.toString()) })
-        }
-        
+    val rooms = roomsViewModel.rooms
+    var filterOption by remember {
+        mutableStateOf("Все")
     }
+    var roomsFiltered = rooms.value
+    if (filterOption == "Комнаты") roomsFiltered = roomsFiltered.filter { it.room_type.name == "Комната" }
+    if (filterOption == "Столы") roomsFiltered = roomsFiltered.filter { it.room_type.name == "Стол" }
+    Column {
+        ChoiceRoomFilter(onAllSelected = {filterOption = "Все"}, onRoomsSelected = {filterOption = "Комнаты"}, onTablesSelected = {filterOption = "Столы"})
+
+
+        LazyVerticalGrid(columns = GridCells.Fixed(2)) {
+            items(roomsFiltered){
+                RoomMiniCard(room = it, modifier = Modifier
+                    .padding(8.dp)
+                    .clickable { onRoomClicked(it.id.toString()) })
+            }
+
+        }
+    }
+
 
 }
 
@@ -196,7 +203,8 @@ fun PreviewRoomPage(){
 
     RoomPage(Room(1, "Комната 9", "Длинный стол и удобные стулья. Хороша для настолок, праздников и мозговых штурмов.", 4, 8, listOf(
         RoomImageLink("https://12komnat.com/wp-content/uploads/2022/09/img_1221-scaled.jpg"), RoomImageLink("https://12komnat.com/wp-content/uploads/2022/09/img_0320-scaled.jpg"), RoomImageLink("https://12komnat.com/wp-content/uploads/2022/09/IMG_8249-scaled.jpg")
-    )
+    ),
+        RoomType("Комната")
     ), schedule = listOf(), viewModel(), viewModel(), modifier = Modifier.fillMaxWidth())
 }
 
@@ -206,7 +214,7 @@ fun PreviewRoomPage(){
 fun RoomPreload(room_id: String, authViewModel: AuthViewModel, roomsViewModel: RoomsViewModel){
     var schedule by roomsViewModel.schedule
     LaunchedEffect(null) {
-        roomsViewModel.loadSchedule(room_id.toInt(), LocalDate.now(), 14, 9)
+        roomsViewModel.loadSchedule(room_id.toInt(), LocalDate.now(), DAYS_SCHEDULE_READY, 9)
     }
     var room: MutableState<Room?> = remember() {
         mutableStateOf(null)
@@ -214,11 +222,7 @@ fun RoomPreload(room_id: String, authViewModel: AuthViewModel, roomsViewModel: R
     LaunchedEffect(null)
     {
         if (room_id != null){
-            room.value = SupabaseClient.client.postgrest.from("rooms").select(Columns.raw("id, name, description, minGuest, maxGuest, rooms_images(image_link)"), request = {
-                filter{
-                    eq("id", room_id.toInt())
-                }
-            }).decodeSingleOrNull<Room>()
+            room.value = roomsViewModel.rooms.value.find { it.id == room_id.toInt() }
         }
     }
     if (room.value != null){
@@ -279,17 +283,15 @@ fun RoomPage(room: Room, schedule: List<ObservableSchedule>, authViewModel: Auth
         if (authViewModel.hasSession.value == true){
             val currentDay = remember { LocalDate.now() }
             val startWeek = remember { currentDay } // Adjust as needed
-            val endWeek = remember { currentDay.plusDays(14) } // Adjust as needed
+            val endWeek = remember { currentDay.plusDays(DAYS_SCHEDULE_READY.toLong()) } // Adjust as needed
             val firstDayOfWeek = remember { firstDayOfWeekFromLocale() } // Available from the library
 
-            var daySchedule by remember{mutableStateOf(listOf<DaySchedule>())}
+            var daySchedule = roomsViewModel.daySchedule
             var selectedDay by remember { mutableStateOf<LocalDate?>(null)}
             LaunchedEffect(key1 = selectedDay) {
                 if (selectedDay != null){
-                    daySchedule = SupabaseClient.client.postgrest.rpc("day_schedule", parameters = buildJsonObject { put("day", selectedDay.toString())
-                        put("room_id_", room.id)}).decodeList<DaySchedule>().toMutableStateList()
+                    roomsViewModel.loadDaySchedule(selectedDay!!, room.id)
                 }
-
             }
 
 
@@ -304,7 +306,7 @@ fun RoomPage(room: Room, schedule: List<ObservableSchedule>, authViewModel: Auth
             val visibleWeek = rememberFirstVisibleWeekAfterScroll(state = state)
 
             Text(text = getWeekPageTitle(visibleWeek))
-            var selectedTime by remember{ mutableStateOf<DaySchedule?>(null)}
+            var selectedTime by remember{ mutableStateOf<ObservableDaySchedule?>(null)}
             WeekCalendar(
                 state = state,
                 dayContent = {
@@ -320,32 +322,38 @@ fun RoomPage(room: Room, schedule: List<ObservableSchedule>, authViewModel: Auth
             var sliderState by remember {
                 mutableStateOf(SliderState(value = 1f, steps = 3, valueRange = 1f..5f))
             }
-            var error by remember{ mutableStateOf("")}
-            if (daySchedule != null && selectedTime != null){
-                for (i in 1..4){
-                    if (daySchedule!!.getOrNull(daySchedule!!.indexOf(selectedTime) + i)?.status == "Не занят" && daySchedule!!.getOrNull(daySchedule!!.indexOf(selectedTime) + i) != null){
+            var message = ""
+            var isReservationEnabled = false
+            if (!daySchedule.value.isEmpty() && selectedTime != null){
+                for (i in 1..sliderState.value.toInt() - 1){
+                    if (daySchedule.value.getOrNull(daySchedule.value.indexOf(selectedTime) + i) == null){
+                        message = "Вы пытаетесь забронировать нерабочее время"
+                        break
+                    }
+                    if (daySchedule.value.getOrNull(daySchedule.value.indexOf(selectedTime) + i)?.status?.value == "Не занят"){
                         counter++
                     }
                     else{
                         break
                     }
                 }
-                if (sliderState.value > counter) error = "Вы пытаетесь забронировать недоступное время"
-                else if (selectedTime != null){
-                    error = "Дата: ${selectedDay.toString()} Выбранное время ${selectedTime!!.date.toJavaLocalDateTime().format(DateTimeFormatter.ofPattern("HH:mm"))} - ${selectedTime!!.date.toJavaLocalDateTime().plusHours(sliderState.value.toLong()).format(DateTimeFormatter.ofPattern("HH:mm"))}"
+                if (message == ""){
+                    if (sliderState.value > counter) message = "Вы пытаетесь забронировать недоступное время"
+                    else {
+                        message = "Дата: ${selectedDay.toString()} Выбранное время ${selectedTime!!.date.toJavaLocalDateTime().format(DateTimeFormatter.ofPattern("HH:mm"))} - ${selectedTime!!.date.toJavaLocalDateTime().plusHours(sliderState.value.toLong()).format(DateTimeFormatter.ofPattern("HH:mm"))}"
+                        isReservationEnabled = true
+                    }
                 }
-            }
-            else{
-                error = ""
+
             }
 
 
 
             LazyRow {
-                if (daySchedule != null){
-                    items(daySchedule!!.size){
-                        val currentTime = daySchedule!!.get(it)
-                        val color = when (currentTime!!.status){
+                if (daySchedule.value.isNotEmpty()){
+                    items(daySchedule.value.size){
+                        val currentTime = daySchedule.value.get(it)
+                        val color = when (currentTime.status.value){
                             "Занят" -> Color.Red
                             "Не занят" -> Color.Green
                             else -> Color.Gray
@@ -353,7 +361,7 @@ fun RoomPage(room: Room, schedule: List<ObservableSchedule>, authViewModel: Auth
                         Text(text = currentTime.date.toJavaLocalDateTime().format(DateTimeFormatter.ofPattern("HH:mm")), modifier = Modifier
                             .background(color)
                             .clickable {
-                                if (currentTime.status != "Занят") selectedTime = currentTime
+                                if (currentTime.status.value != "Занят") selectedTime = currentTime
                             }
                         )
                     }
@@ -361,20 +369,21 @@ fun RoomPage(room: Room, schedule: List<ObservableSchedule>, authViewModel: Auth
             }
 
             Slider(state = sliderState, modifier = Modifier.padding(10.dp))
-            Text(text = error)
+            Text(text = message)
             Button(onClick = {
-                val list = daySchedule
                 for (i in 0..sliderState.value.toInt() - 1){
-                    list?.get(daySchedule!!.indexOf(selectedTime) + i)?.status = "Занят"
-
+                    daySchedule.value.get(daySchedule.value.indexOf(selectedTime) + i).status.value = "Занят"
                 }
-                schedule.find {it.day.toJavaLocalDate() == selectedDay }?.status?.value = "Свободен частично"
-                daySchedule = list.toMutableStateList()// если тоже использовать toList() то изменения не зафиксируются, я ваще без понятия почему, референс то поменяться должен был
+
+                schedule.find {it.day.toJavaLocalDate() == selectedDay }?.let {
+                    if (daySchedule.value.all { it.status.value == "Занят" }) it.status.value = "Занят"
+                    else it.status.value = "Свободен частично"
+                }
 
                 roomsViewModel.makeReservation(Reservation(room.id, authViewModel.userAuthInfo!!.id, selectedTime!!.date, sliderState!!.value.toInt()))
+                selectedTime = null
 
-
-                             }, modifier = Modifier.align(Alignment.CenterHorizontally)) {
+                             }, enabled = isReservationEnabled, modifier = Modifier.align(Alignment.CenterHorizontally)) {
                 Text("Бронируем!")
             }
 
@@ -403,24 +412,64 @@ fun rememberFirstVisibleWeekAfterScroll(state: WeekCalendarState): Week {
 
 @Composable
 fun Day(day: WeekDay, status: String?, onClick: (LocalDate) -> Unit) {
-    Box(
-        modifier = Modifier
-            .aspectRatio(1f)
-            .background(
-                when (status) {
-                    "Свободен" -> Color.Green
-                    "Свободен частично" -> Color.Yellow
-                    "Занят" -> Color.Red
-                    else -> Color.Gray
-                }
+    if (day.position == WeekDayPosition.RangeDate){
+        Box(
+            modifier = Modifier
+                .aspectRatio(1f)
+                .background(
+                    when (status) {
+                        "Свободен" -> Color.Green
+                        "Свободен частично" -> Color.Yellow
+                        "Занят" -> Color.Red
+                        else -> Color.Gray
+                    }
+                )
+                .clickable { onClick(day.date) },
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = day.date.dayOfMonth.toString(),
             )
-            .clickable { onClick(day.date) },
-        contentAlignment = Alignment.Center
-    ) { // Change the color of in-dates and out-dates, you can also hide them completely!
-        Text(
-            text = day.date.dayOfMonth.toString(),
-        )
+        }
     }
+    else{
+        Box(
+            modifier = Modifier
+                .aspectRatio(1f)
+                .background(Color.Gray),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = day.date.dayOfMonth.toString(),
+            )
+        }
+    }
+
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ChoiceRoomFilter(onAllSelected: () -> Unit = {}, onRoomsSelected: () -> Unit = {}, onTablesSelected: () -> Unit = {}){
+    var selectedIndex by remember {
+        mutableStateOf(0)
+    }
+    SingleChoiceSegmentedButtonRow(modifier = Modifier
+        .padding(5.dp)
+        .fillMaxWidth()) {
+        SegmentedButton(selected = (selectedIndex == 0), onClick = { onAllSelected()
+                                                                   selectedIndex = 0}, shape = RoundedCornerShape(topStart = 10.dp, bottomStart = 10.dp), modifier = Modifier.weight(0.2f)) {
+            Text(text = "Все")
+        }
+        SegmentedButton(selected = (selectedIndex == 1), onClick = { onRoomsSelected()
+                                                                   selectedIndex = 1}, shape = RoundedCornerShape(1.dp), modifier = Modifier.weight(0.3f)) {
+            Text(text = "Только комнаты")
+        }
+        SegmentedButton(selected = (selectedIndex == 2), onClick = { onTablesSelected()
+                                                                   selectedIndex = 2}, shape = RoundedCornerShape(topEnd = 10.dp, bottomEnd = 10.dp), modifier = Modifier.weight(0.3f)) {
+            Text(text = "Только столы")
+        }
+    }
+
 }
 
 

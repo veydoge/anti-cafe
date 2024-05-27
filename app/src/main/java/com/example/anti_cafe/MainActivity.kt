@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Casino
 import androidx.compose.material.icons.filled.Event
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
@@ -95,11 +96,6 @@ class MainActivity : ComponentActivity() {
 fun AntiCafeApp(modifier: Modifier = Modifier.fillMaxSize()){
     val navHostController: NavHostController = rememberNavController()
     val navBackStackEntry by navHostController.currentBackStackEntryAsState()
-    LaunchedEffect(null) {
-
-
-
-    }
 
     Scaffold(
         bottomBar = {
@@ -109,7 +105,8 @@ fun AntiCafeApp(modifier: Modifier = Modifier.fillMaxSize()){
             else {
                 BottomAppBar(onNavigateEvents = {navHostController.navigate("events")},
                     onNavigateMain = {navHostController.navigate("main")},
-                    onNavigateProfile = {navHostController.navigate("profile")})
+                    onNavigateProfile = {navHostController.navigate("profile")},
+                    onNavigateGames = {navHostController.navigate("games")})
             }
 
         }) {
@@ -133,6 +130,9 @@ fun AntiCafeApp(modifier: Modifier = Modifier.fillMaxSize()){
                 val authViewModel: AuthViewModel = viewModel(parentEntry)
                 val eventsViewModel: EventsViewModel = viewModel(parentEntry)
                 Events(eventsViewModel, navHostController, authViewModel)
+            }
+            composable("games"){
+
             }
             composable("profile"){
                 val parentEntry = remember(navBackStackEntry){
@@ -192,7 +192,7 @@ fun ProfilePreview(){
 
 
 @Composable
-fun BottomAppBar(onNavigateMain: () -> Unit = {}, onNavigateEvents: () -> Unit = {}, onNavigateProfile: () -> Unit = {}){
+fun BottomAppBar(onNavigateMain: () -> Unit = {}, onNavigateEvents: () -> Unit = {}, onNavigateProfile: () -> Unit = {}, onNavigateGames: () -> Unit){
     var selected by remember{
         mutableStateOf(Icons.Filled.Home)
     }
@@ -202,21 +202,27 @@ fun BottomAppBar(onNavigateMain: () -> Unit = {}, onNavigateEvents: () -> Unit =
             selected = Icons.Filled.Event
             onNavigateEvents()
         }) {
-            Icon(Icons.Filled.Event, contentDescription = "null", tint = if (selected == Icons.Filled.Event) MaterialTheme.colorScheme.primaryContainer else Color.DarkGray)
+            Icon(Icons.Filled.Event, contentDescription = null, tint = if (selected == Icons.Filled.Event) MaterialTheme.colorScheme.primaryContainer else Color.DarkGray)
         }
         IconButton(onClick = {
             selected = Icons.Filled.Home
             onNavigateMain()
         }) {
-            Icon(Icons.Filled.Home, contentDescription = "null", tint = if (selected == Icons.Filled.Home) MaterialTheme.colorScheme.primaryContainer else Color.DarkGray)
+            Icon(Icons.Filled.Home, contentDescription = null, tint = if (selected == Icons.Filled.Home) MaterialTheme.colorScheme.primaryContainer else Color.DarkGray)
             
+        }
+
+        IconButton(onClick = {
+            selected = Icons.Filled.Casino
+            onNavigateGames()
+        }) {
+            Icon(Icons.Filled.Casino, contentDescription = null, tint = if (selected == Icons.Filled.Casino) MaterialTheme.colorScheme.primaryContainer else Color.DarkGray)
         }
         IconButton(onClick = {
             selected = Icons.Filled.Person
             onNavigateProfile()
         }) {
-            Icon(Icons.Filled.Person, contentDescription = "null", tint = if (selected == Icons.Filled.Person) MaterialTheme.colorScheme.primaryContainer else Color.DarkGray)
-
+            Icon(Icons.Filled.Person, contentDescription = null, tint = if (selected == Icons.Filled.Person) MaterialTheme.colorScheme.primaryContainer else Color.DarkGray)
         }
 
     }
