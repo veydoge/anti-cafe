@@ -29,13 +29,21 @@ data class EventObservable(val id: Int, val name: String, val description: Strin
 class EventsViewModel: ViewModel(){
     var eventList: List<EventObservable> = mutableStateListOf()
 
+    var loadedForUser : String? = null
+
     fun loadEvents(userid: String?){
         viewModelScope.launch {
-            var eventListLoaded = SupabaseClient.client.postgrest.rpc("user_events", parameters = buildJsonObject { put("useruid", userid) }).decodeList<Event>().toMutableStateList()
-            eventList = eventListLoaded.map { EventObservable(it) }
+            if (loadedForUser != userid || eventList.isEmpty()) {
+                var eventListLoaded = SupabaseClient.client.postgrest.rpc(
+                    "user_events",
+                    parameters = buildJsonObject { put("useruid", userid) }).decodeList<Event>()
+                    .toMutableStateList()
+                loadedForUser = userid
+                eventList = eventListLoaded.map { EventObservable(it) }
+            }
         }
-
     }
+
 
 
     fun joinEvent(userid: String, eventid: Int){

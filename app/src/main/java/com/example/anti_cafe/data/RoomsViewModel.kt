@@ -1,10 +1,7 @@
 package com.example.anti_cafe.data
 
-import android.util.Log
 import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.toMutableStateList
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.anti_cafe.data.network.SupabaseClient
@@ -32,6 +29,10 @@ class RoomsViewModel : ViewModel() {
     var rooms = mutableStateOf(listOf<Room>())
     var schedule : MutableState<List<ObservableSchedule>> = mutableStateOf(listOf<ObservableSchedule>())
     var daySchedule: MutableState<List<ObservableDaySchedule>> = mutableStateOf(listOf<ObservableDaySchedule>())
+    var selectedRoom: Room? = null
+    var selectedTime: LocalDateTime? = null
+    var hoursSelected: Int? = null
+
     init {
         viewModelScope.launch {
             rooms.value = SupabaseClient.client.postgrest.from("rooms").select(Columns.raw("id, name, description, minGuest, maxGuest, rooms_images(image_link), room_type(name)")).decodeList<Room>().toMutableList()
@@ -40,14 +41,14 @@ class RoomsViewModel : ViewModel() {
     }
 
 
-    public fun makeReservation(reservation: Reservation){
+    fun makeReservation(reservation: Reservation){
         viewModelScope.launch {
             SupabaseClient.client.postgrest.from("rooms_reservations").insert(reservation)
         }
 
     }
 
-    public fun loadSchedule(room_id: Int, start_date: LocalDate, days: Int, available_hours_per_day: Int){
+    fun loadSchedule(room_id: Int, start_date: LocalDate, days: Int, available_hours_per_day: Int){
         viewModelScope.launch {
             daySchedule = mutableStateOf(listOf<ObservableDaySchedule>())
             schedule.value = SupabaseClient.client.postgrest.rpc("schedule", parameters = buildJsonObject { put("room_id", room_id)
@@ -57,7 +58,7 @@ class RoomsViewModel : ViewModel() {
         }
     }
 
-    public fun loadDaySchedule(day: LocalDate, room_id: Int){
+    fun loadDaySchedule(day: LocalDate, room_id: Int){
         viewModelScope.launch {
             daySchedule.value = SupabaseClient.client.postgrest.rpc("day_schedule", parameters = buildJsonObject { put("day", day.toString())
                 put("room_id_", room_id)}).decodeList<DaySchedule>().map { ObservableDaySchedule(it) }

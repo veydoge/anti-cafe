@@ -5,28 +5,22 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.sizeIn
-import androidx.compose.foundation.layout.wrapContentSize
-import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Abc
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
-import androidx.compose.material3.Divider
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -45,7 +39,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
 import com.example.anti_cafe.data.AuthViewModel
@@ -55,36 +48,39 @@ import com.example.anti_cafe.data.EventsViewModel
 import com.example.anti_cafe.data.network.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.rpc
-import kotlinx.datetime.LocalDateTime
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
 @Composable
 fun Events(eventsViewModel: EventsViewModel, navHostController: NavHostController, authViewModel: AuthViewModel){
+
+
     var events = eventsViewModel.eventList
     LaunchedEffect(authViewModel.userAuthInfo?.id) {
-        if (eventsViewModel.eventList.isEmpty()){
-            eventsViewModel.loadEvents(authViewModel.userAuthInfo?.id)
-        }
+       eventsViewModel.loadEvents(authViewModel.userAuthInfo?.id)
     }
-    LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        items(events){
-            EventCard(event = it, modifier = Modifier.padding(5.dp), userUid = authViewModel.userAuthInfo?.id,
-                onClick =
-                {if (!it.flag.value){
-                    eventsViewModel.joinEvent(authViewModel.userAuthInfo!!.id, it.id)
-                    it.flag.value = true
-                }
+    Column {
+        Text(text = "События", fontSize = MaterialTheme.typography.headlineLarge.fontSize, textAlign = TextAlign.Center, modifier = Modifier
+            .fillMaxWidth()
+            .padding(10.dp))
+        LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            items(events){
+                EventCard(event = it, modifier = Modifier.padding(5.dp), userUid = authViewModel.userAuthInfo?.id,
+                    onClick =
+                    {if (!it.flag.value){
+                        eventsViewModel.joinEvent(authViewModel.userAuthInfo!!.id, it.id)
+                        it.flag.value = true
+                    }
                     else{
                         eventsViewModel.leaveEvent(authViewModel.userAuthInfo!!.id, it.id)
-                    it.flag.value = false
-                }
-                })
+                        it.flag.value = false
+                    }
+                    })
+            }
         }
     }
+    }
 
-
-}
 
 
 
@@ -114,7 +110,6 @@ fun EventCard(event: EventObservable, userUid: String? = null, onClick: () -> Un
     var expanded by rememberSaveable {
         mutableStateOf(false)
     }
-    val isEntered by rememberSaveable{ mutableStateOf(event.flag)}
     Card (shape = RoundedCornerShape(10.dp), modifier = modifier)
     {
         Column(modifier = Modifier.padding(10.dp)){
@@ -159,7 +154,7 @@ fun EventCard(event: EventObservable, userUid: String? = null, onClick: () -> Un
             }
             if (expanded){
                 Column {
-                    Divider()
+                    HorizontalDivider()
                     Text(text = event.description,
                         modifier = Modifier.padding(10.dp))
                 }

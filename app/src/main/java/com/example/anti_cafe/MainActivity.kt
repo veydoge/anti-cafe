@@ -44,13 +44,17 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.anti_cafe.data.AuthViewModel
 import com.example.anti_cafe.data.EventsViewModel
+import com.example.anti_cafe.data.GamesViewModel
 import com.example.anti_cafe.data.RoomsViewModel
 import com.example.anti_cafe.data.network.SupabaseClient
 import com.example.anti_cafe.ui.Profile
 import com.example.anti_cafe.ui.SignUpScreen
 import com.example.anti_cafe.ui.theme.AnticafeTheme
 import com.example.anti_cafe.ui.Events
+import com.example.anti_cafe.ui.GamePagePreload
+import com.example.anti_cafe.ui.Games
 import com.example.anti_cafe.ui.Main
+import com.example.anti_cafe.ui.ReservationConfirmationPage
 import com.example.anti_cafe.ui.RoomPage
 import com.example.anti_cafe.ui.RoomPreload
 import com.example.anti_cafe.ui.SignInScreen
@@ -132,14 +136,27 @@ fun AntiCafeApp(modifier: Modifier = Modifier.fillMaxSize()){
                 Events(eventsViewModel, navHostController, authViewModel)
             }
             composable("games"){
-
+                val parentEntry = remember(navBackStackEntry){
+                    navHostController.getBackStackEntry("mainGraph")
+                }
+                val gamesViewModel: GamesViewModel = viewModel(parentEntry)
+                Games(gamesViewModel, {navHostController.navigate("games/$it")})
+            }
+            composable("games/{gameId}"){
+                val parentEntry = remember(navBackStackEntry){
+                    navHostController.getBackStackEntry("mainGraph")
+                }
+                val gamesViewModel: GamesViewModel = viewModel(parentEntry)
+                it.arguments!!.getString("gameId")
+                    ?.let{it1 -> GamePagePreload(id = it1, gamesViewModel = gamesViewModel)}
             }
             composable("profile"){
                 val parentEntry = remember(navBackStackEntry){
                     navHostController.getBackStackEntry("mainGraph")
                 }
+                val eventsViewModel: EventsViewModel = viewModel(parentEntry)
                 val authViewModel: AuthViewModel = viewModel(parentEntry)
-                Profile(onNavigateSignUp = {navHostController.navigate("sign_up")}, onNavigateSignIn = {navHostController.navigate("sign_in")}, authViewModel = authViewModel)
+                Profile(onNavigateSignUp = {navHostController.navigate("sign_up")}, onNavigateSignIn = {navHostController.navigate("sign_in")}, authViewModel = authViewModel, eventsViewModel = eventsViewModel)
             }
             composable("sign_up"){
                 val parentEntry = remember(navBackStackEntry){
@@ -163,7 +180,19 @@ fun AntiCafeApp(modifier: Modifier = Modifier.fillMaxSize()){
                 val authViewModel: AuthViewModel = viewModel(parentEntry)
                 val roomsViewModel: RoomsViewModel = viewModel(parentEntry)
                 it.arguments!!.getString("roomId")
-                    ?.let { it1 -> RoomPreload(it1, authViewModel, roomsViewModel) }
+                    ?.let { it1 -> RoomPreload(it1, authViewModel, roomsViewModel, onReserveConfirmationNavigate = {navHostController.navigate("reserve_confirmation")}) }
+            }
+            composable("reserve_confirmation"){
+                val parentEntry = remember(navBackStackEntry){
+                    navHostController.getBackStackEntry("mainGraph")
+                }
+                val roomsViewModel: RoomsViewModel = viewModel(parentEntry)
+                val gamesViewModel: GamesViewModel = viewModel(parentEntry)
+                val authViewModel: AuthViewModel = viewModel(parentEntry)
+
+                ReservationConfirmationPage(roomsViewModel = roomsViewModel, gamesViewModel = gamesViewModel, authViewModel = authViewModel, onNavigateMain = {navHostController.navigate("main")})
+
+
             }
         }
     }
@@ -178,7 +207,7 @@ fun AntiCafeApp(modifier: Modifier = Modifier.fillMaxSize()){
 @Preview(showBackground = true)
 @Composable
 fun ProfilePreview(){
-    Profile(authViewModel = viewModel())
+    Profile(authViewModel = viewModel(), eventsViewModel = viewModel())
 }
 
 
