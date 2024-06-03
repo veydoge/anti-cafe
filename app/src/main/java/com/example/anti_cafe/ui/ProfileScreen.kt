@@ -242,6 +242,7 @@ fun ShortReservationInfo(reservation: Reservation, room: Room, onDelete: (Reserv
                     .padding(start = 10.dp), verticalArrangement = Arrangement.Center){
                     Text(text = room.name, fontSize = 20.sp, modifier = Modifier.padding(top = 10.dp))
                     Text(text = reservation.date.toJavaLocalDateTime().format(formatter))
+                    Text(text = "Часов забронировано: ${reservation.hours_reserved}")
                 }
                 Spacer(modifier = Modifier.weight(1f))
                 Column(modifier = Modifier

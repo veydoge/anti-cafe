@@ -37,6 +37,7 @@ class RoomsViewModel : ViewModel() {
     var selectedRoom: Room? = null
     var selectedTime: LocalDateTime? = null
     var hoursSelected: Int? = null
+    var loadedForUser : String? = null
 
 
     init {
@@ -53,11 +54,12 @@ class RoomsViewModel : ViewModel() {
     }
 
     fun loadReservations(user_id: String){
-        if (reservations.value.isEmpty()){
+        if (reservations.value.isEmpty() && loadedForUser != user_id){
             viewModelScope.launch {
                 reservations.value = SupabaseClient.client.postgrest.from("rooms_reservations").select {Columns.raw("room_id, user_id, date, hours_reserved")
                 filter {eq("user_id", user_id) }}.decodeList()
             }
+            loadedForUser = user_id
         }
     }
 

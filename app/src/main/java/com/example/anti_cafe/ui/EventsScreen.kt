@@ -63,6 +63,9 @@ fun Events(eventsViewModel: EventsViewModel, navHostController: NavHostControlle
         Text(text = "События", fontSize = MaterialTheme.typography.headlineLarge.fontSize, textAlign = TextAlign.Center, modifier = Modifier
             .fillMaxWidth()
             .padding(10.dp))
+        if (authViewModel.hasSession.value == false){
+            Text("Присоединение к событию доступно лишь авторизованным пользователям")
+        }
         LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             items(events){
                 EventCard(event = it, modifier = Modifier.padding(5.dp), userUid = authViewModel.userAuthInfo?.id,
@@ -123,8 +126,8 @@ fun EventCard(event: EventObservable, userUid: String? = null, onClick: () -> Un
                 
 
                 Icon(imageVector = Icons.Filled.DateRange, contentDescription = null, modifier = Modifier.align(Alignment.CenterVertically))
-                Text(text = event.date.toString().replace('T', ' '),
-                    Modifier
+                Text(text = event.date.toString().replace('T', ' '), fontSize = 13.sp,
+                    modifier = Modifier
                         .align(Alignment.CenterVertically)
                         .padding(start = 5.dp)
                         .weight(0.3f), textAlign = TextAlign.Center)

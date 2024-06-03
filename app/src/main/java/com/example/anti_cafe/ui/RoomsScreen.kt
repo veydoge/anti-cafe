@@ -114,6 +114,9 @@ fun Main(authViewModel: AuthViewModel, roomsViewModel: RoomsViewModel, onRoomCli
         Text(text = "Главная", fontSize = MaterialTheme.typography.headlineLarge.fontSize, textAlign = TextAlign.Center, modifier = Modifier
             .fillMaxWidth()
             .padding(10.dp))
+        if (authViewModel.hasSession.value == false){
+            Text("Бронирование доступно лишь авторизованным пользователям")
+        }
 
         RoomCard(roomsViewModel, onRoomClicked)
     }
