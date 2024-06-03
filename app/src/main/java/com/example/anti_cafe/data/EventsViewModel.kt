@@ -21,7 +21,9 @@ import kotlinx.serialization.json.put
 data class EventEntry(@SerialName("user_id") val userid: String, @SerialName("event_id") val eventid: Int)
 
 @Serializable
-data class Event(val id: Int, val name: String, val description: String, val main_image: String?, val date: LocalDateTime, val flag: Boolean)
+data class Event(val id: Int, val name: String, val description: String, val main_image: String?, val date: LocalDateTime, val flag: Boolean){
+    constructor(eventObservable: EventObservable): this(id = eventObservable.id, name = eventObservable.name, description = eventObservable.description, main_image = eventObservable.main_image, date = eventObservable.date, false)
+}
 
 data class EventObservable(val id: Int, val name: String, val description: String, val main_image: String?, val date: LocalDateTime, var flag: MutableState<Boolean>){
     constructor(event: Event) : this(event.id, event.name, event.description, event.main_image, event.date, mutableStateOf(event.flag))

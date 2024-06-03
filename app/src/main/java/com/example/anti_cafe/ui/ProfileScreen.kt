@@ -1,21 +1,18 @@
 package com.example.anti_cafe.ui
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyHorizontalGrid
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -40,29 +37,23 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.anti_cafe.data.AuthViewModel
-import com.example.anti_cafe.data.Event
 import com.example.anti_cafe.data.EventObservable
 import com.example.anti_cafe.data.EventsViewModel
-import kotlinx.datetime.Clock
-import kotlinx.datetime.LocalDateTime
-import kotlinx.datetime.TimeZone
+import com.example.anti_cafe.data.Room
+import com.example.anti_cafe.data.RoomsViewModel
 import kotlinx.datetime.toJavaLocalDateTime
-import kotlinx.datetime.toLocalDateTime
 import java.time.format.DateTimeFormatter
 
 
 @Composable
-fun Profile(onNavigateSignUp: () -> Unit = {}, onNavigateSignIn: () -> Unit = {}, authViewModel: AuthViewModel, eventsViewModel: EventsViewModel){
+fun Profile(onNavigateSignUp: () -> Unit = {}, onNavigateSignIn: () -> Unit = {}, authViewModel: AuthViewModel, eventsViewModel: EventsViewModel, roomsViewModel: RoomsViewModel){
     Column(
         Modifier
         , verticalArrangement = Arrangement.SpaceAround){
@@ -76,7 +67,7 @@ fun Profile(onNavigateSignUp: () -> Unit = {}, onNavigateSignIn: () -> Unit = {}
             NoAuthCard(onNavigateSignUp = onNavigateSignUp, onNavigateSignIn = onNavigateSignIn)
         }
         else if (authViewModel.hasSession.value == true){
-            WithAuthCard(authViewModel = authViewModel, eventsViewModel = eventsViewModel, onLogout = {authViewModel.logout(context)})
+            WithAuthCard(authViewModel = authViewModel, eventsViewModel = eventsViewModel, roomsViewModel = roomsViewModel, onLogout = {authViewModel.logout(context)})
 
         }
         else if (authViewModel.error != ""){
@@ -113,7 +104,7 @@ fun NoAuthCard(onNavigateSignUp: () -> Unit, onNavigateSignIn: () -> Unit, modif
 }
 
 @Composable
-fun WithAuthCard(onLogout: () -> Unit = {}, authViewModel: AuthViewModel = viewModel(), eventsViewModel: EventsViewModel = viewModel(), modifier: Modifier = Modifier){
+fun WithAuthCard(onLogout: () -> Unit = {}, authViewModel: AuthViewModel, eventsViewModel: EventsViewModel, roomsViewModel: RoomsViewModel, modifier: Modifier = Modifier){
     Column(modifier = Modifier.padding(8.dp)) {
 
         Card {
@@ -157,7 +148,7 @@ fun WithAuthCard(onLogout: () -> Unit = {}, authViewModel: AuthViewModel = viewM
                 EventsProfile(authViewModel.userAuthInfo!!.id, eventsViewModel)
             }
             composable("reservesProfile") {
-                ReservesProfile(authViewModel.userAuthInfo!!.id)
+                ReservesProfile(authViewModel.userAuthInfo!!.id, roomsViewModel = roomsViewModel)
             }
         }
     }
@@ -166,14 +157,13 @@ fun WithAuthCard(onLogout: () -> Unit = {}, authViewModel: AuthViewModel = viewM
 @Composable
 fun EventsProfile(id: String, eventsViewModel: EventsViewModel){
     LaunchedEffect(id) {
-
         eventsViewModel.loadEvents(id)
     }
     Column{
         Text(text = "Здесь события в которых вы участвуете")
-        LazyColumn {
+        LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             items(eventsViewModel.eventList.filter { it.flag.value == true }){
-                ShortEventInfo(event = it)
+                ShortEventInfo(event = it, onDelete = {eventsViewModel.leaveEvent(id, it.id)})
             }
         }
     }
@@ -181,16 +171,24 @@ fun EventsProfile(id: String, eventsViewModel: EventsViewModel){
 }
 
 @Composable
-fun ReservesProfile(id: String){
-    Text(text = "Здесь ваши бронирования")
+fun ReservesProfile(id: String, roomsViewModel: RoomsViewModel){
+    LaunchedEffect(null) {
+        roomsViewModel.loadRooms()
+        roomsViewModel.loadReservations(id)
+
+    }
+    Column(){
+        Text(text = "Здесь ваши бронирования")
+        LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            items(roomsViewModel.reservations.value){
+                ShortReservationInfo(reservation = it, room = roomsViewModel.rooms.value.find({room ->  room.id == it.room_id})!!, {reservation: Reservation -> roomsViewModel.deleteReservation(reservation)})
+            }
+        }
+    }
 }
-@Preview(showBackground = true)
+
 @Composable
-fun PreviewShortEventInfo(){
-    ShortEventInfo(event = EventObservable(1, "Шахматы", "Описание", "123", Clock.System.now().toLocalDateTime(TimeZone.UTC), mutableStateOf(false)))
-}
-@Composable
-fun ShortEventInfo(event: EventObservable){
+fun ShortEventInfo(event: EventObservable, onDelete: (EventObservable) -> Unit){
     val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
     val openAlertDialog = remember { mutableStateOf(false) }
     Card(modifier = Modifier, shape = RoundedCornerShape(topStart = 15.dp, bottomEnd = 15.dp)
@@ -216,11 +214,53 @@ fun ShortEventInfo(event: EventObservable){
                     }
                 }
             }
+            var context = LocalContext.current
             if (openAlertDialog.value == true){
-                AlertDialogExample(dialogTitle = "Отменить регистрацию", dialogText = "Вы уверены, что хотите отменить участие в событии?", onConfirmation = {openAlertDialog.value = false}, onDismissRequest = {openAlertDialog.value = false})
+                AlertDialogExample(dialogTitle = "Отменить регистрацию", dialogText = "Вы уверены, что хотите отменить участие в событии?", onConfirmation = {openAlertDialog.value = false
+                    onDelete(event)
+                    event.flag.value = false
+                    Toast.makeText(context,"Участие успешно отменено", Toast.LENGTH_LONG).show()
+                                                                                                                                                             }, onDismissRequest = {openAlertDialog.value = false})
             }
+        }
+    }
+}
 
+@Composable
+fun ShortReservationInfo(reservation: Reservation, room: Room, onDelete: (Reservation) -> Unit){
+    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+    val openAlertDialog = remember { mutableStateOf(false) }
+    Card(modifier = Modifier, shape = RoundedCornerShape(topStart = 15.dp, bottomEnd = 15.dp)
+    ){
+        Box (modifier = Modifier
+            .fillMaxWidth()
+            .height(100.dp)
+            .background(MaterialTheme.colorScheme.primaryContainer)) {
+            Row(){
+                Column(modifier = Modifier
+                    .fillMaxHeight()
+                    .padding(start = 10.dp), verticalArrangement = Arrangement.Center){
+                    Text(text = room.name, fontSize = 20.sp, modifier = Modifier.padding(top = 10.dp))
+                    Text(text = reservation.date.toJavaLocalDateTime().format(formatter))
+                }
+                Spacer(modifier = Modifier.weight(1f))
+                Column(modifier = Modifier
+                    .fillMaxHeight()
+                    .padding(5.dp), verticalArrangement = Arrangement.Center){
+                    Button(onClick = {openAlertDialog.value = true}) {
+                        Text(text = "Отменить бронирование")
 
+                    }
+                }
+            }
+            var context = LocalContext.current
+            if (openAlertDialog.value == true){
+                AlertDialogExample(dialogTitle = "Отменить бронирование", dialogText = "Вы уверены, что хотите отменить свое бронирование?", onConfirmation = {openAlertDialog.value = false
+                    onDelete(reservation)
+                    Toast.makeText(context,"Бронирование успешно отменено", Toast.LENGTH_LONG).show()
+
+                                                                                                                                                              }, onDismissRequest = {openAlertDialog.value = false})
+            }
         }
     }
 }

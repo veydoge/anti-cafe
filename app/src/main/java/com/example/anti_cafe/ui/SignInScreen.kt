@@ -115,7 +115,7 @@ fun PasswordField(password: String = "", onValueChange: (String) -> Unit = {}, m
         singleLine = true,
         visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-        supportingText = {if (password.length != 0 && password.length < 6)
+        supportingText = {if (password.length != 0 && password.length <= 6)
             Text(text = "Пароль должен содержать больше 6 символов", color = MaterialTheme.colorScheme.error)},
         trailingIcon ={
             val image = if (passwordVisible) Icons.Filled.Visibility
