@@ -198,8 +198,8 @@ fun PreviewRoomPage(){
 
 @Composable
 fun RoomPreload(room_id: String, authViewModel: AuthViewModel, roomsViewModel: RoomsViewModel, onReserveConfirmationNavigate: () -> Unit){
-    var schedule by roomsViewModel.schedule
-    var room: Room? = roomsViewModel.rooms.value.find { it.id == room_id.toInt() }
+    val schedule by roomsViewModel.schedule
+    val room: Room? = roomsViewModel.rooms.value.find { it.id == room_id.toInt() }
     LaunchedEffect(null)
     {
         roomsViewModel.loadSchedule(room_id.toInt(), LocalDate.now(), DAYS_SCHEDULE_READY, 9)
@@ -268,7 +268,7 @@ fun RoomPage(room: Room, schedule: List<ObservableSchedule>, authViewModel: Auth
             val endWeek = remember { currentDay.plusDays(DAYS_SCHEDULE_READY.toLong()) } // Adjust as needed
             val firstDayOfWeek = remember { firstDayOfWeekFromLocale() } // Available from the library
 
-            var daySchedule = roomsViewModel.daySchedule
+            val daySchedule = roomsViewModel.daySchedule
             var selectedDay by remember { mutableStateOf<LocalDate?>(null)}
             LaunchedEffect(key1 = selectedDay) {
                 if (selectedDay != null){
@@ -306,7 +306,7 @@ fun RoomPage(room: Room, schedule: List<ObservableSchedule>, authViewModel: Auth
             }
             var message = ""
             var isReservationEnabled = false
-            if (!daySchedule.value.isEmpty() && selectedTime != null){
+            if (daySchedule.value.isNotEmpty() && selectedTime != null){
                 for (i in 1..sliderState.value.toInt() - 1){
                     if (daySchedule.value.getOrNull(daySchedule.value.indexOf(selectedTime) + i) == null){
                         message = "Вы пытаетесь забронировать нерабочее время"
@@ -364,7 +364,7 @@ fun RoomPage(room: Room, schedule: List<ObservableSchedule>, authViewModel: Auth
                 }
 
                 roomsViewModel.selectedTime = selectedTime!!.date
-                roomsViewModel.hoursSelected = sliderState!!.value.toInt()
+                roomsViewModel.hoursSelected = sliderState.value.toInt()
                 onReserveConfirmationNavigate()
 
                 // roomsViewModel.makeReservation(Reservation(room.id, authViewModel.userAuthInfo!!.id, selectedTime!!.date, sliderState!!.value.toInt()))
@@ -490,8 +490,9 @@ fun ChoiceRoomFilter(onAllSelected: () -> Unit = {}, onRoomsSelected: () -> Unit
 
 @Composable
 fun ReservationConfirmationPage(roomsViewModel: RoomsViewModel, gamesViewModel: GamesViewModel, authViewModel: AuthViewModel, onNavigateMain: () -> Unit){
-    LaunchedEffect(null) {
+    LaunchedEffect(gamesViewModel.gamesList) {
         gamesViewModel.loadGames()
+        gamesViewModel.loadNewReservationGameList(roomsViewModel.selectedTime!!.toJavaLocalDateTime(), roomsViewModel.hoursSelected!!)
     }
     val gamesListReservation = gamesViewModel.gamesListReservation
 
@@ -507,12 +508,11 @@ fun ReservationConfirmationPage(roomsViewModel: RoomsViewModel, gamesViewModel: 
 
         }
         Column(modifier = Modifier
-            .padding(10.dp)
-            .align(Alignment.CenterHorizontally)){
-            Text(text = "Возьмем игру?", fontSize = 20.sp)
+            .padding(10.dp).fillMaxWidth()){
+            Text(text = "Возьмем игру?", fontSize = 20.sp, modifier = Modifier.align(Alignment.CenterHorizontally))
 
 
-            LazyVerticalGrid(columns = GridCells.Fixed(2)) {
+            LazyVerticalGrid(columns = GridCells.Fixed(2), modifier = Modifier.weight(1f)) {
 
                 items(gamesListReservation.size) {
                     val index = it

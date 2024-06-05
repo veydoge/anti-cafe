@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -20,9 +21,16 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -30,22 +38,23 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
-import com.example.anti_cafe.data.AgeRestriction
 import com.example.anti_cafe.data.Game
 import com.example.anti_cafe.data.GameReservation
-import com.example.anti_cafe.data.GameType
 import com.example.anti_cafe.data.GamesViewModel
+import com.example.anti_cafe.data.network.SupabaseClient
+import io.github.jan.supabase.postgrest.postgrest
+import io.github.jan.supabase.postgrest.query.Columns
+import kotlinx.serialization.Serializable
 
 
 @Composable
@@ -69,7 +78,7 @@ fun GameMiniCard(game: Game, modifier: Modifier = Modifier){
 
 @Composable
 fun GameMiniCardWithReservation(game: GameReservation, reservationChanged: (Boolean) -> Unit, modifier: Modifier = Modifier){
-    var reservationFlag = game.reserved
+    val reservationFlag = game.reserved
 
     Card(shape = RoundedCornerShape(10.dp), modifier = modifier
         .height(240.dp)
@@ -86,26 +95,30 @@ fun GameMiniCardWithReservation(game: GameReservation, reservationChanged: (Bool
             .align(Alignment.CenterHorizontally)
             .padding(top = 10.dp))
         Spacer(modifier = Modifier.weight(1f))
-        Checkbox(checked = reservationFlag, onCheckedChange = {
-                                                              reservationChanged(!game.reserved)}, modifier = Modifier.align(Alignment.CenterHorizontally))
+        if (game.available == "Не занято"){
+            Checkbox(checked = reservationFlag, onCheckedChange = {
+                reservationChanged(!game.reserved)}, modifier = Modifier.align(Alignment.CenterHorizontally))
+        }
+        else if (game.available == "Занято"){
+            Text(text = "Забронировано", modifier = Modifier.align(Alignment.CenterHorizontally))
+        }
+        else{
+            CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
+        }
+        
 
     }
 }
 
 @Composable
 fun GamePagePreload(id: String, gamesViewModel: GamesViewModel){
-    var game = gamesViewModel.gamesList.find { it.id == id.toInt() }
+    val game = gamesViewModel.gamesList.find { it.id == id.toInt() }
     if (game != null){
         GamePage(game = game, gamesViewModel = gamesViewModel)
     }
 
 }
 
-@Preview(showBackground = true)
-@Composable
-fun previewGamePage(){
-    // GameMiniCardWithReservation(game = Game(1, "фу", "фу", AgeRestriction("6+"), GameType("ХАХА"), rules_link = "123", "123"))
-}
 
 
 @Composable
@@ -131,7 +144,7 @@ fun GamePage(game: Game, gamesViewModel: GamesViewModel, modifier : Modifier = M
                     .padding(4.dp)
             )
 
-            Divider(
+            HorizontalDivider(
                 modifier = Modifier.fillMaxWidth(),
                 color = MaterialTheme.colorScheme.onPrimaryContainer
             )
@@ -155,20 +168,114 @@ fun GamePage(game: Game, gamesViewModel: GamesViewModel, modifier : Modifier = M
     }
 }
 
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 
 fun Games(gamesViewModel: GamesViewModel, onGameClicked: (String) -> Unit) {
+    var gamesTypesList = gamesViewModel.gamesTypesList
+    var gamesAgeRestrictList = gamesViewModel.ageRestrictList
+    var gamesFiltered = gamesViewModel.gamesList.toList()
+    var selectedOptionTextGameType by remember { mutableStateOf("Без фильтра") }
+    var selectedOptionTextAgeRestrict by remember { mutableStateOf("Без фильтра") }
+
+    if (selectedOptionTextGameType != "Без фильтра"){
+        gamesFiltered = gamesFiltered.filter { it.game_type.name == selectedOptionTextGameType }
+    }
+    if (selectedOptionTextAgeRestrict != "Без фильтра"){
+        gamesFiltered = gamesFiltered.filter { it.age_restrict.name == selectedOptionTextAgeRestrict }
+    }
     LaunchedEffect(null) {
         gamesViewModel.loadGames()
+        gamesViewModel.loadGameTypes()
+        gamesViewModel.loadAgeRestrictions()
     }
+
+
 
     Column{
         Text(text = "Настольные игры", fontSize = MaterialTheme.typography.headlineLarge.fontSize, textAlign = TextAlign.Center, modifier = Modifier
             .fillMaxWidth()
             .padding(10.dp))
 
+
+
+        Row(){
+            var optionsGameType = mutableListOf<String>("Без фильтра")
+            var expandedGameType by remember { mutableStateOf(false) }
+            if (gamesTypesList.isNotEmpty()){
+                optionsGameType.addAll(gamesTypesList.map { it.name })
+            }
+
+
+            ExposedDropdownMenuBox(
+                expanded = expandedGameType,
+                onExpandedChange = { expandedGameType = !expandedGameType }, modifier = Modifier.weight(0.5f).padding(5.dp)
+            ) {
+                TextField(
+                    modifier = Modifier.menuAnchor(),
+                    readOnly = true,
+                    value = selectedOptionTextGameType,
+                    onValueChange = {},
+                    label = { Text("Тип игры") },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedGameType) },
+                    colors = ExposedDropdownMenuDefaults.textFieldColors(),
+                )
+                ExposedDropdownMenu(
+                    expanded = expandedGameType,
+                    onDismissRequest = { expandedGameType = false },
+                ) {
+                    optionsGameType.forEach { selectionOption ->
+                        DropdownMenuItem(
+                            text = { Text(selectionOption) },
+                            onClick = {
+                                selectedOptionTextGameType = selectionOption
+                                expandedGameType = false
+                            },
+                            contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding,
+                        )
+                    }
+                }
+            }
+
+            var optionsAgeRestrict = mutableListOf<String>("Без фильтра")
+            var expandedAgeRestrict by remember { mutableStateOf(false) }
+            if (gamesAgeRestrictList.isNotEmpty()){
+                optionsAgeRestrict.addAll(gamesAgeRestrictList.map { it.name })
+            }
+            ExposedDropdownMenuBox(
+                expanded = expandedAgeRestrict,
+                onExpandedChange = { expandedAgeRestrict = !expandedAgeRestrict }, modifier = Modifier.weight(0.5f).padding(5.dp)
+            ) {
+                TextField(
+                    modifier = Modifier.menuAnchor(),
+                    readOnly = true,
+                    value = selectedOptionTextAgeRestrict,
+                    onValueChange = {},
+                    label = { Text("Возрастное ограничение") },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedAgeRestrict) },
+                    colors = ExposedDropdownMenuDefaults.textFieldColors(),
+                )
+                ExposedDropdownMenu(
+                    expanded = expandedAgeRestrict,
+                    onDismissRequest = { expandedAgeRestrict = false },
+                ) {
+                    optionsAgeRestrict.forEach { selectionOption ->
+                        DropdownMenuItem(
+                            text = { Text(selectionOption) },
+                            onClick = {
+                                selectedOptionTextAgeRestrict = selectionOption
+                                expandedAgeRestrict = false
+                            },
+                            contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding,
+                        )
+                    }
+                }
+            }
+        }
+
         LazyVerticalGrid(columns = GridCells.Fixed(2)) {
-            items(gamesViewModel.gamesList) {
+            items(gamesFiltered) {
                 GameMiniCard(game = it, modifier = Modifier
                     .padding(8.dp)
                     .clickable { onGameClicked(it.id.toString()) })

@@ -21,15 +21,15 @@ import kotlinx.serialization.json.put
 data class EventEntry(@SerialName("user_id") val userid: String, @SerialName("event_id") val eventid: Int)
 
 @Serializable
-data class Event(val id: Int, val name: String, val description: String, val main_image: String?, val date: LocalDateTime, val flag: Boolean){
-    constructor(eventObservable: EventObservable): this(id = eventObservable.id, name = eventObservable.name, description = eventObservable.description, main_image = eventObservable.main_image, date = eventObservable.date, false)
+data class Event(val id: Int, val name: String, val description: String, val main_image: String?, val date: LocalDateTime, var flag: Boolean, var participiants: Int?, val max_people: Int){
+    init{
+        if (participiants == null) participiants = 0
+    }
 }
 
-data class EventObservable(val id: Int, val name: String, val description: String, val main_image: String?, val date: LocalDateTime, var flag: MutableState<Boolean>){
-    constructor(event: Event) : this(event.id, event.name, event.description, event.main_image, event.date, mutableStateOf(event.flag))
-}
+
 class EventsViewModel: ViewModel(){
-    var eventList: List<EventObservable> = mutableStateListOf()
+    var eventList = mutableStateListOf<Event>()
 
     var loadedForUser : String? = null
 
@@ -41,7 +41,7 @@ class EventsViewModel: ViewModel(){
                     parameters = buildJsonObject { put("useruid", userid) }).decodeList<Event>()
                     .toMutableStateList()
                 loadedForUser = userid
-                eventList = eventListLoaded.map { EventObservable(it) }
+                eventList = eventListLoaded
             }
         }
     }

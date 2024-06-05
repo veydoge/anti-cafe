@@ -44,7 +44,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.anti_cafe.data.AuthViewModel
-import com.example.anti_cafe.data.EventObservable
+import com.example.anti_cafe.data.Event
 import com.example.anti_cafe.data.EventsViewModel
 import com.example.anti_cafe.data.Room
 import com.example.anti_cafe.data.RoomsViewModel
@@ -162,8 +162,9 @@ fun EventsProfile(id: String, eventsViewModel: EventsViewModel){
     Column{
         Text(text = "Здесь события в которых вы участвуете")
         LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            items(eventsViewModel.eventList.filter { it.flag.value == true }){
-                ShortEventInfo(event = it, onDelete = {eventsViewModel.leaveEvent(id, it.id)})
+            items(eventsViewModel.eventList.filter { it.flag == true }){
+                ShortEventInfo(event = it, onDelete = {eventsViewModel.leaveEvent(id, it.id)
+                eventsViewModel.eventList.set(eventsViewModel.eventList.indexOf(it), it.copy(flag = false))})
             }
         }
     }
@@ -188,7 +189,7 @@ fun ReservesProfile(id: String, roomsViewModel: RoomsViewModel){
 }
 
 @Composable
-fun ShortEventInfo(event: EventObservable, onDelete: (EventObservable) -> Unit){
+fun ShortEventInfo(event: Event, onDelete: (Event) -> Unit){
     val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
     val openAlertDialog = remember { mutableStateOf(false) }
     Card(modifier = Modifier, shape = RoundedCornerShape(topStart = 15.dp, bottomEnd = 15.dp)
@@ -218,7 +219,6 @@ fun ShortEventInfo(event: EventObservable, onDelete: (EventObservable) -> Unit){
             if (openAlertDialog.value == true){
                 AlertDialogExample(dialogTitle = "Отменить регистрацию", dialogText = "Вы уверены, что хотите отменить участие в событии?", onConfirmation = {openAlertDialog.value = false
                     onDelete(event)
-                    event.flag.value = false
                     Toast.makeText(context,"Участие успешно отменено", Toast.LENGTH_LONG).show()
                                                                                                                                                              }, onDismissRequest = {openAlertDialog.value = false})
             }

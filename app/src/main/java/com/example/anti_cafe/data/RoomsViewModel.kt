@@ -19,7 +19,7 @@ import java.time.LocalDate
 
 
 @Serializable
-data class Room(val id: Int, val name: String, val description: String, val minGuest: Int, val maxGuest: Int, val rooms_images: List<RoomImageLink>, val room_type: RoomType    )
+data class Room(val id: Int, val name: String, val description: String, val minGuest: Int, val maxGuest: Int, val rooms_images: List<RoomImageLink>, val room_type: RoomType)
 @Serializable
 data class RoomType(val name: String)
 
