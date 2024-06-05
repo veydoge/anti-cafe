@@ -38,6 +38,8 @@ class GamesViewModel : ViewModel(){
     var gamesListReservation = gamesList.map { GameReservation(it) }.toMutableStateList()
 
 
+
+
     fun loadGames(){
         if (gamesList.size == 0){
             viewModelScope.launch {

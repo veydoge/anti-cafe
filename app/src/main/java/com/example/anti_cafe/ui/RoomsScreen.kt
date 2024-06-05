@@ -495,6 +495,7 @@ fun ReservationConfirmationPage(roomsViewModel: RoomsViewModel, gamesViewModel: 
         gamesViewModel.loadNewReservationGameList(roomsViewModel.selectedTime!!.toJavaLocalDateTime(), roomsViewModel.hoursSelected!!)
     }
     val gamesListReservation = gamesViewModel.gamesListReservation
+    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
 
     Column{
         Card(modifier = Modifier
@@ -503,7 +504,7 @@ fun ReservationConfirmationPage(roomsViewModel: RoomsViewModel, gamesViewModel: 
             Text(text = "Ваше бронирование", fontWeight = FontWeight.Bold, fontSize = 30.sp, modifier = Modifier.align(Alignment.CenterHorizontally))
             Column(modifier = Modifier.padding(10.dp)) {
                 Text(text = "Комната: ${roomsViewModel.selectedRoom!!.name}")
-                Text(text = "Дата: ${roomsViewModel.selectedTime}")
+                Text(text = "Дата: ${roomsViewModel.selectedTime!!.toJavaLocalDateTime().format(formatter)}")
             }
 
         }

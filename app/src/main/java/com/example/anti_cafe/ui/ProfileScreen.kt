@@ -46,6 +46,7 @@ import androidx.navigation.compose.rememberNavController
 import com.example.anti_cafe.data.AuthViewModel
 import com.example.anti_cafe.data.Event
 import com.example.anti_cafe.data.EventsViewModel
+import com.example.anti_cafe.data.ReservationWithGames
 import com.example.anti_cafe.data.Room
 import com.example.anti_cafe.data.RoomsViewModel
 import kotlinx.datetime.toJavaLocalDateTime
@@ -182,7 +183,7 @@ fun ReservesProfile(id: String, roomsViewModel: RoomsViewModel){
         Text(text = "Здесь ваши бронирования")
         LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             items(roomsViewModel.reservations.value){
-                ShortReservationInfo(reservation = it, room = roomsViewModel.rooms.value.find({room ->  room.id == it.room_id})!!, {reservation: Reservation -> roomsViewModel.deleteReservation(reservation)})
+                ShortReservationInfo(reservation = it, room = roomsViewModel.rooms.value.find({room ->  room.id == it.room_id})!!, {reservation: ReservationWithGames -> roomsViewModel.deleteReservation(reservation)})
             }
         }
     }
@@ -227,42 +228,61 @@ fun ShortEventInfo(event: Event, onDelete: (Event) -> Unit){
 }
 
 @Composable
-fun ShortReservationInfo(reservation: Reservation, room: Room, onDelete: (Reservation) -> Unit){
+fun ShortReservationInfo(reservation: ReservationWithGames, room: Room, onDelete: (ReservationWithGames) -> Unit){
     val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
     val openAlertDialog = remember { mutableStateOf(false) }
     Card(modifier = Modifier, shape = RoundedCornerShape(topStart = 15.dp, bottomEnd = 15.dp)
     ){
         Box (modifier = Modifier
             .fillMaxWidth()
-            .height(100.dp)
             .background(MaterialTheme.colorScheme.primaryContainer)) {
-            Row(){
-                Column(modifier = Modifier
-                    .fillMaxHeight()
-                    .padding(start = 10.dp), verticalArrangement = Arrangement.Center){
-                    Text(text = room.name, fontSize = 20.sp, modifier = Modifier.padding(top = 10.dp))
-                    Text(text = reservation.date.toJavaLocalDateTime().format(formatter))
-                    Text(text = "Часов забронировано: ${reservation.hours_reserved}")
-                }
-                Spacer(modifier = Modifier.weight(1f))
-                Column(modifier = Modifier
-                    .fillMaxHeight()
-                    .padding(5.dp), verticalArrangement = Arrangement.Center){
-                    Button(onClick = {openAlertDialog.value = true}) {
-                        Text(text = "Отменить бронирование")
-
+            Column{
+                Row(){
+                    Column(modifier = Modifier
+                        .fillMaxHeight()
+                        .padding(start = 10.dp), verticalArrangement = Arrangement.Center){
+                        Text(text = room.name, fontSize = 20.sp, modifier = Modifier.padding(top = 10.dp))
+                        Text(text = reservation.date.toJavaLocalDateTime().format(formatter))
+                        Text(text = "Часов забронировано: ${reservation.hours_reserved}")
+                    }
+                    Spacer(modifier = Modifier.weight(1f))
+                    Column(modifier = Modifier
+                        .fillMaxHeight()
+                        .padding(5.dp), verticalArrangement = Arrangement.Center){
+                        Button(onClick = {openAlertDialog.value = true}) {
+                            Text(text = "Отменить бронирование")
+                        }
                     }
                 }
-            }
-            var context = LocalContext.current
-            if (openAlertDialog.value == true){
-                AlertDialogExample(dialogTitle = "Отменить бронирование", dialogText = "Вы уверены, что хотите отменить свое бронирование?", onConfirmation = {openAlertDialog.value = false
-                    onDelete(reservation)
-                    Toast.makeText(context,"Бронирование успешно отменено", Toast.LENGTH_LONG).show()
+                var context = LocalContext.current
+                if (openAlertDialog.value == true){
+                    AlertDialogExample(dialogTitle = "Отменить бронирование", dialogText = "Вы уверены, что хотите отменить свое бронирование?", onConfirmation = {openAlertDialog.value = false
+                        onDelete(reservation)
+                        Toast.makeText(context,"Бронирование успешно отменено", Toast.LENGTH_LONG).show()
 
-                                                                                                                                                              }, onDismissRequest = {openAlertDialog.value = false})
+                    }, onDismissRequest = {openAlertDialog.value = false})
+                }
+
+
+                if (reservation.games_reservations.isNotEmpty()){
+                    var mes = ""
+                    for (i in reservation.games_reservations.indices){
+                        if (i == reservation.games_reservations.lastIndex){
+                            mes += reservation.games_reservations[i].games.name
+                        }
+                        else{
+                            mes += reservation.games_reservations[i].games.name + ", "
+                        }
+
+                    }
+                    Text(text = "Забронированные игры: ${mes}", modifier = Modifier.padding(start = 10.dp))
+                }
+
             }
+
+
         }
+
     }
 }
 

@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -217,7 +218,7 @@ fun Games(gamesViewModel: GamesViewModel, onGameClicked: (String) -> Unit) {
                     readOnly = true,
                     value = selectedOptionTextGameType,
                     onValueChange = {},
-                    label = { Text("Тип игры") },
+                    label = { Text("Тип игры", minLines = 2) },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedGameType) },
                     colors = ExposedDropdownMenuDefaults.textFieldColors(),
                 )
@@ -252,7 +253,7 @@ fun Games(gamesViewModel: GamesViewModel, onGameClicked: (String) -> Unit) {
                     readOnly = true,
                     value = selectedOptionTextAgeRestrict,
                     onValueChange = {},
-                    label = { Text("Возрастное ограничение") },
+                    label = { Text("Возрастное ограничение", minLines = 2)},
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedAgeRestrict) },
                     colors = ExposedDropdownMenuDefaults.textFieldColors(),
                 )

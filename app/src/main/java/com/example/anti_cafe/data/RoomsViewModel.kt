@@ -28,10 +28,20 @@ data class RoomImageLink(val image_link: String)
 
 @Serializable
 data class ReservationId(val id: Int)
+@Serializable
+data class ShortGame(val name: String)
+@Serializable
+data class ReservationGame(val games: ShortGame)
+@Serializable
+data class ReservationWithGames(val room_id: Int, val user_id: String, val date: LocalDateTime, val hours_reserved: Int, val games_reservations: List<ReservationGame> = listOf())
+
+
+
+
 
 class RoomsViewModel : ViewModel() {
     var rooms = mutableStateOf(listOf<Room>())
-    var reservations = mutableStateOf(listOf<Reservation>())
+    var reservations = mutableStateOf(listOf<ReservationWithGames>())
     var schedule : MutableState<List<ObservableSchedule>> = mutableStateOf(listOf<ObservableSchedule>())
     var daySchedule: MutableState<List<ObservableDaySchedule>> = mutableStateOf(listOf<ObservableDaySchedule>())
     var selectedRoom: Room? = null
@@ -56,8 +66,8 @@ class RoomsViewModel : ViewModel() {
     fun loadReservations(user_id: String){
         if (reservations.value.isEmpty() && loadedForUser != user_id){
             viewModelScope.launch {
-                reservations.value = SupabaseClient.client.postgrest.from("rooms_reservations").select {Columns.raw("room_id, user_id, date, hours_reserved")
-                filter {eq("user_id", user_id) }}.decodeList()
+                reservations.value = SupabaseClient.client.postgrest.from("rooms_reservations").select(columns = Columns.raw("room_id, user_id, date, hours_reserved, games_reservations(games(name))")){
+                    filter {eq("user_id", user_id) }}.decodeList()
             }
             loadedForUser = user_id
         }
@@ -65,7 +75,7 @@ class RoomsViewModel : ViewModel() {
 
     fun updateReservations(user_id: String){
         viewModelScope.launch {
-            reservations.value = SupabaseClient.client.postgrest.from("rooms_reservations").select {Columns.raw("room_id, user_id, date, hours_reserved")
+            reservations.value = SupabaseClient.client.postgrest.from("rooms_reservations").select(columns = Columns.raw("room_id, user_id, date, hours_reserved, games_reservations(games(name))")){
                 filter {eq("user_id", user_id) }}.decodeList()
         }
     }
@@ -88,7 +98,7 @@ class RoomsViewModel : ViewModel() {
 
     }
 
-    fun deleteReservation(reservation: Reservation){
+    fun deleteReservation(reservation: ReservationWithGames){
         viewModelScope.launch {
             SupabaseClient.client.postgrest.from("rooms_reservations").delete({filter { eq("room_id", reservation.room_id)
             eq("user_id", reservation.user_id)
