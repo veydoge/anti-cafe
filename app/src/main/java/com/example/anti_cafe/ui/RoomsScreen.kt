@@ -88,7 +88,7 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
 
-const val DAYS_SCHEDULE_READY = 15 // на сколько дней вперед можно бронировать
+const val DAYS_SCHEDULE_READY = 14 // на сколько дней вперед можно бронировать
 
 @Preview(showBackground = true)
 @Composable
@@ -202,7 +202,7 @@ fun RoomPreload(room_id: String, authViewModel: AuthViewModel, roomsViewModel: R
     val room: Room? = roomsViewModel.rooms.value.find { it.id == room_id.toInt() }
     LaunchedEffect(null)
     {
-        roomsViewModel.loadSchedule(room_id.toInt(), LocalDate.now(), DAYS_SCHEDULE_READY, 9)
+        roomsViewModel.loadSchedule(room_id.toInt(), LocalDate.now().plusDays(1), DAYS_SCHEDULE_READY, 9)
     }
     if (room != null){
         RoomPage(room = room, authViewModel= authViewModel, roomsViewModel = roomsViewModel, onReserveConfirmationNavigate = onReserveConfirmationNavigate, schedule = schedule)
@@ -263,9 +263,9 @@ fun RoomPage(room: Room, schedule: List<ObservableSchedule>, authViewModel: Auth
         }
 
         if (authViewModel.hasSession.value == true){
-            val currentDay = remember { LocalDate.now() }
+            val currentDay = remember { LocalDate.now().plusDays(1) }
             val startWeek = remember { currentDay } // Adjust as needed
-            val endWeek = remember { currentDay.plusDays(DAYS_SCHEDULE_READY.toLong()) } // Adjust as needed
+            val endWeek = remember { currentDay.plusDays(DAYS_SCHEDULE_READY.toLong() - 1) } // Adjust as needed
             val firstDayOfWeek = remember { firstDayOfWeekFromLocale() } // Available from the library
 
             val daySchedule = roomsViewModel.daySchedule

@@ -92,6 +92,7 @@ fun SignInScreen(onNavigateProfile: () -> Unit = {}, authViewModel: AuthViewMode
 @Composable
 fun EmailField(email: String = "", onValueChange: (String) -> Unit = {}, modifier: Modifier = Modifier){
     OutlinedTextField(value = email,
+        singleLine = true,
         onValueChange = onValueChange,
         supportingText = {
             if (!Patterns.EMAIL_ADDRESS.matcher(email).matches() && email.length > 0){

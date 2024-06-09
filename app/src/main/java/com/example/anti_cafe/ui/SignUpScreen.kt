@@ -4,6 +4,7 @@ import android.util.Patterns
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
@@ -18,6 +19,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.anti_cafe.data.AuthViewModel
@@ -55,14 +57,17 @@ fun SignUpScreen(onNavigateProfile: () -> Unit = {}, authViewModel: AuthViewMode
             onValueChange = {name = it},
             label = {Text(text = "Имя")},
             supportingText = { if (name.length != 0 && name.length < 3) Text(text = "Имя должно содержать больше трех символов", color = MaterialTheme.colorScheme.error) },
-            modifier = Modifier.align(Alignment.CenterHorizontally)
+            modifier = Modifier.align(Alignment.CenterHorizontally),
+            singleLine = true
         )
 
         OutlinedTextField(value = phoneNumber,
             onValueChange = {phoneNumber = it},
             label = {Text(text = "Номер ")},
             supportingText = {if (!Patterns.PHONE.matcher(phoneNumber).matches() && phoneNumber != "") Text(text = "Телефон не соответствует формату", color = MaterialTheme.colorScheme.error)},
-            modifier = Modifier.align(Alignment.CenterHorizontally)
+            modifier = Modifier.align(Alignment.CenterHorizontally),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+            singleLine = true
         )
 
 
