@@ -165,7 +165,7 @@ fun EventsProfile(id: String, eventsViewModel: EventsViewModel){
         LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             items(eventsViewModel.eventList.filter { it.flag == true }){
                 ShortEventInfo(event = it, onDelete = {eventsViewModel.leaveEvent(id, it.id)
-                eventsViewModel.eventList.set(eventsViewModel.eventList.indexOf(it), it.copy(flag = false))})
+                eventsViewModel.eventList.set(eventsViewModel.eventList.indexOf(it), it.copy(flag = false, participiants = it.participiants?.minus(1)))})
             }
         }
     }

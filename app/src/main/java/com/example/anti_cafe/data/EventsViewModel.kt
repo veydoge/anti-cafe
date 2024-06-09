@@ -36,6 +36,7 @@ class EventsViewModel: ViewModel(){
     fun loadEvents(userid: String?){
         viewModelScope.launch {
             if (loadedForUser != userid || eventList.isEmpty()) {
+                eventList = mutableStateListOf()
                 var eventListLoaded = SupabaseClient.client.postgrest.rpc(
                     "user_events",
                     parameters = buildJsonObject { put("useruid", userid) }).decodeList<Event>()
